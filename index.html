@@ -244,6 +244,9 @@
     .score-input.is-over  { color: #e07070; }
     .score-input.is-mc    { color: #888; font-style: italic; }
 
+    .player-row.dropped { opacity: 0.45; }
+    .player-row.dropped .player-name { text-decoration: line-through; }
+
     .mc-wrap {
       display: flex;
       align-items: center;
@@ -409,11 +412,13 @@
   }
 
   function teamTotal(teamIdx) {
-    let sum = 0, hasAny = false;
+    const scores = [];
     for (const s of state[teamIdx]) {
-      if (!s.mc && s.score !== null) { sum += s.score; hasAny = true; }
+      if (!s.mc && s.score !== null) scores.push(s.score);
     }
-    return hasAny ? sum : null;
+    if (scores.length === 0) return null;
+    scores.sort((a, b) => a - b); // ascending = best (lowest) first
+    return scores.slice(0, 3).reduce((sum, s) => sum + s, 0);
   }
 
   function totalClass(total) {
@@ -505,11 +510,24 @@
   }
 
   function updateTotals() {
-    TEAMS.forEach((_, ti) => {
+    TEAMS.forEach((team, ti) => {
       const total = teamTotal(ti);
       const el = document.getElementById(`teamTotal-${ti}`);
       el.textContent = formatTotal(total);
       el.className = 'team-total-badge score-total ' + totalClass(total);
+
+      // Find the worst (highest) score to visually drop it
+      const scored = team.players
+        .map((_, pi) => ({ pi, score: state[ti][pi] }))
+        .filter(x => !x.score.mc && x.score.score !== null);
+      scored.sort((a, b) => b.score.score - a.score.score); // worst first
+      const droppedPi = scored.length >= 4 ? scored[0].pi : null;
+
+      team.players.forEach((_, pi) => {
+        const row = document.querySelector(`#teamBody-${ti} .player-row:nth-child(${pi + 1})`);
+        if (!row) return;
+        row.classList.toggle('dropped', pi === droppedPi);
+      });
     });
   }
 
