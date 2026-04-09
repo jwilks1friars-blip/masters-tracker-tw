@@ -272,6 +272,32 @@
       border-top: 1px solid #1a3a1a;
     }
 
+    .live-bar {
+      background: #0a230a;
+      border-bottom: 1px solid #2d5a2d;
+      padding: 7px 20px;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      color: #a8c5a8;
+    }
+
+    .live-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #555; flex-shrink: 0;
+    }
+
+    .live-dot.live  { background: #7dce7d; animation: pulse 2s infinite; }
+    .live-dot.error { background: #e07070; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+
     @media (max-width: 600px) {
       .teams-grid { grid-template-columns: 1fr; }
     }
@@ -288,6 +314,12 @@
   <span>Share live scores with your group:</span>
   <button class="share-btn" onclick="copyShareLink()">Copy Share Link</button>
   <span class="copied-msg" id="copiedMsg">Copied!</span>
+</div>
+
+<div class="live-bar" id="liveBar">
+  <span class="live-dot" id="liveDot"></span>
+  <span id="liveStatus">Loading live scores…</span>
+  <button class="share-btn" onclick="fetchLiveScores()" style="padding:4px 10px;font-size:0.75rem">&#8635; Refresh</button>
 </div>
 
 <div class="main">
@@ -539,10 +571,77 @@
     });
   }
 
+  async function fetchLiveScores() {
+    const dot = document.getElementById('liveDot');
+    const status = document.getElementById('liveStatus');
+    dot.className = 'live-dot';
+    status.textContent = 'Fetching live scores…';
+    try {
+      const res = await fetch('/api/scores');
+      const data = await res.json();
+      if (!res.ok) {
+        dot.className = 'live-dot error';
+        status.textContent = 'Live data unavailable' + (data.error ? ': ' + data.error : '');
+        return;
+      }
+      applyLiveScores(data.players);
+      const t = new Date(data.updated);
+      const timeStr = t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      dot.className = 'live-dot live';
+      status.textContent = `Live \u00b7 ${data.eventName} \u00b7 Updated ${timeStr}`;
+    } catch (e) {
+      dot.className = 'live-dot error';
+      status.textContent = 'Could not reach live scores';
+    }
+  }
+
+  function applyLiveScores(players) {
+    const lookup = {};
+    for (const p of players) {
+      if (!p.name) continue;
+      lookup[p.name.toLowerCase()] = p;
+      const last = p.name.trim().split(' ').pop().toLowerCase();
+      if (!lookup[last]) lookup[last] = p;
+    }
+    TEAMS.forEach((team, ti) => {
+      team.players.forEach((player, pi) => {
+        const full = player.name.toLowerCase();
+        const last = player.name.trim().split(' ').pop().toLowerCase();
+        const live = lookup[full] || lookup[last];
+        if (!live) return;
+        state[ti][pi] = { score: live.topar, mc: live.mc };
+        const input = document.getElementById(`input-${ti}-${pi}`);
+        const mcBox  = document.getElementById(`mc-${ti}-${pi}`);
+        if (!input || !mcBox) return;
+        if (live.mc) {
+          state[ti][pi].mc = true;
+          mcBox.checked = true;
+          input.disabled = true;
+          input.style.opacity = '0.5';
+          input.value = '';
+          input.className = 'score-input is-mc';
+        } else {
+          state[ti][pi].mc = false;
+          mcBox.checked = false;
+          input.disabled = false;
+          input.style.opacity = '1';
+          const s = live.topar;
+          input.value = s === null ? '' : s === 0 ? 'E' : s > 0 ? `+${s}` : `${s}`;
+          input.className = 'score-input ' + scoreClass(s, false);
+        }
+      });
+    });
+    updateTotals();
+    updateStandings();
+    saveState();
+  }
+
   loadState();
   buildTeams();
   updateTotals();
   updateStandings();
+  fetchLiveScores();
+  setInterval(fetchLiveScores, 2 * 60 * 1000);
 </script>
 </body>
 </html>
