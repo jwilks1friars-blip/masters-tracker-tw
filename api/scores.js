@@ -17,17 +17,28 @@ module.exports = async function handler(req, res) {
     if (!event) {
       return res.status(404).json({
         error: 'Masters not found in current ESPN events',
-        availableEvents: events.map(e => e.name || e.shortName || e.id),
+        availableEvents: events.map(e => ({ name: e.name, id: e.id })),
       });
     }
 
-    const lbRes = await fetch(
-      `https://site.api.espn.com/apis/site/v2/sports/golf/pga/summary?event=${event.id}`
-    );
-    if (!lbRes.ok) throw new Error(`ESPN leaderboard: HTTP ${lbRes.status}`);
-    const lb = await lbRes.json();
+    // Pull competitors directly from the scoreboard competition data —
+    // avoids a second round-trip and the unreliable /summary endpoint.
+    let competitors = (event.competitions || []).flatMap(c => c.competitors || []);
 
-    const competitors = lb.leaderboard?.competitors || [];
+    // Fallback: try the summary endpoint if scoreboard had no competitors
+    if (competitors.length === 0) {
+      const lbRes = await fetch(
+        `https://site.api.espn.com/apis/site/v2/sports/golf/pga/summary?event=${event.id}`
+      );
+      if (lbRes.ok) {
+        const lb = await lbRes.json();
+        competitors = lb.leaderboard?.competitors || [];
+      }
+    }
+
+    if (competitors.length === 0) {
+      return res.status(503).json({ error: 'No competitor data available yet — tournament may not have started' });
+    }
 
     const players = competitors.map(c => {
       const displayValue = (c.score?.displayValue || '').trim();
@@ -46,7 +57,7 @@ module.exports = async function handler(req, res) {
       }
 
       return {
-        name: c.athlete?.displayName || '',
+        name: c.athlete?.displayName || c.athlete?.fullName || '',
         topar,
         mc,
       };
