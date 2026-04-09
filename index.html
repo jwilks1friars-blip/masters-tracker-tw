@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Masters 2026 Group Tracker</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Georgia', serif;
+      background: #1a3a1a;
+      min-height: 100vh;
+      color: #f5f0e8;
+    }
+
+    header {
+      background: linear-gradient(135deg, #0d2b0d 0%, #1a3a1a 50%, #0d2b0d 100%);
+      border-bottom: 3px solid #c9a84c;
+      padding: 24px 20px 20px;
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: clamp(1.6rem, 5vw, 2.8rem);
+      color: #c9a84c;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
+
+    header p {
+      color: #a8c5a8;
+      font-size: 0.95rem;
+      margin-top: 6px;
+      font-style: italic;
+    }
+
+    .share-bar {
+      background: #0d2b0d;
+      border-bottom: 1px solid #2d5a2d;
+      padding: 10px 20px;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .share-bar span {
+      font-size: 0.82rem;
+      color: #a8c5a8;
+    }
+
+    .share-btn {
+      background: #c9a84c;
+      color: #0d2b0d;
+      border: none;
+      padding: 6px 16px;
+      border-radius: 4px;
+      font-size: 0.82rem;
+      font-weight: bold;
+      cursor: pointer;
+      letter-spacing: 0.05em;
+      transition: background 0.15s;
+    }
+
+    .share-btn:hover { background: #e0c06a; }
+    .share-btn:active { background: #b08c30; }
+
+    .copied-msg {
+      color: #7dce7d;
+      font-size: 0.8rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .copied-msg.show { opacity: 1; }
+
+    .main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 28px 16px 60px;
+    }
+
+    .standings-section {
+      margin-bottom: 36px;
+    }
+
+    .section-title {
+      color: #c9a84c;
+      font-size: 1rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #2d5a2d;
+    }
+
+    .standings-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #0d2b0d;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+
+    .standings-table th {
+      background: #0a230a;
+      color: #c9a84c;
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 10px 16px;
+      text-align: left;
+    }
+
+    .standings-table th:last-child,
+    .standings-table td:last-child { text-align: center; }
+
+    .standings-table td {
+      padding: 11px 16px;
+      border-top: 1px solid #1a3a1a;
+      font-size: 0.95rem;
+    }
+
+    .standings-table tbody tr:hover { background: #152e15; }
+
+    .pos-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      font-weight: bold;
+      font-size: 0.85rem;
+    }
+
+    .pos-1 { background: #c9a84c; color: #0d2b0d; }
+    .pos-2 { background: #8a8a8a; color: #fff; }
+    .pos-3 { background: #8b5e3c; color: #fff; }
+    .pos-other { background: #1a3a1a; color: #a8c5a8; }
+
+    .score-total {
+      font-weight: bold;
+      font-size: 1.05rem;
+    }
+
+    .score-under { color: #7dce7d; }
+    .score-over { color: #e07070; }
+    .score-even { color: #f5f0e8; }
+
+    .teams-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+    }
+
+    .team-card {
+      background: #0d2b0d;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      border: 1px solid #1f4a1f;
+    }
+
+    .team-header {
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .team-name {
+      font-size: 1.15rem;
+      font-weight: bold;
+      color: #c9a84c;
+      letter-spacing: 0.05em;
+    }
+
+    .team-total-badge {
+      font-size: 1rem;
+      font-weight: bold;
+      padding: 3px 10px;
+      border-radius: 4px;
+      background: #1a3a1a;
+    }
+
+    .team-body { padding: 0 0 10px; }
+
+    .player-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 18px;
+      border-top: 1px solid #1a3a1a;
+    }
+
+    .player-row:hover { background: #152e15; }
+
+    .player-name {
+      font-size: 0.9rem;
+      color: #ddd8cc;
+    }
+
+    .player-flag {
+      font-size: 1rem;
+      margin-right: 6px;
+    }
+
+    .score-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .score-input {
+      width: 58px;
+      background: #1a3a1a;
+      border: 1px solid #2d5a2d;
+      border-radius: 4px;
+      color: #f5f0e8;
+      font-size: 0.9rem;
+      text-align: center;
+      padding: 4px 6px;
+      font-family: 'Georgia', serif;
+      transition: border-color 0.15s, background 0.15s;
+      -moz-appearance: textfield;
+    }
+
+    .score-input::-webkit-outer-spin-button,
+    .score-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+    .score-input:focus {
+      outline: none;
+      border-color: #c9a84c;
+      background: #1f4a1f;
+    }
+
+    .score-input.is-under { color: #7dce7d; }
+    .score-input.is-over  { color: #e07070; }
+    .score-input.is-mc    { color: #888; font-style: italic; }
+
+    .mc-wrap {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: 6px;
+    }
+
+    .mc-wrap label {
+      font-size: 0.72rem;
+      color: #888;
+      cursor: pointer;
+    }
+
+    .mc-check {
+      width: 13px;
+      height: 13px;
+      cursor: pointer;
+      accent-color: #888;
+    }
+
+    footer {
+      text-align: center;
+      padding: 24px;
+      color: #4a7a4a;
+      font-size: 0.78rem;
+      border-top: 1px solid #1a3a1a;
+    }
+
+    @media (max-width: 600px) {
+      .teams-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>&#9971; The Masters 2026</h1>
+  <p>Group Tracker &mdash; Augusta National Golf Club</p>
+</header>
+
+<div class="share-bar">
+  <span>Share live scores with your group:</span>
+  <button class="share-btn" onclick="copyShareLink()">Copy Share Link</button>
+  <span class="copied-msg" id="copiedMsg">Copied!</span>
+</div>
+
+<div class="main">
+  <div class="standings-section">
+    <div class="section-title">Standings</div>
+    <table class="standings-table" id="standingsTable">
+      <thead>
+        <tr>
+          <th>Pos</th>
+          <th>Team</th>
+          <th>Players</th>
+          <th>Total (to par)</th>
+        </tr>
+      </thead>
+      <tbody id="standingsBody"></tbody>
+    </table>
+  </div>
+
+  <div class="section-title">Teams &amp; Scores</div>
+  <div class="teams-grid" id="teamsGrid"></div>
+</div>
+
+<footer>
+  Scores update live for anyone using this link &bull; Enter scores relative to par (e.g. &minus;5, +2, E)
+</footer>
+
+<script>
+  const TEAMS = [
+    {
+      name: "Tyler",
+      color: "#1a4a6e",
+      players: [
+        { name: "Justin Thomas",    flag: "🇺🇸" },
+        { name: "Jon Rahm",         flag: "🇪🇸" },
+        { name: "Jordan Spieth",    flag: "🇺🇸" },
+        { name: "Xander Schauffele",flag: "🇺🇸" },
+      ]
+    },
+    {
+      name: "Brendan",
+      color: "#4a1a1a",
+      players: [
+        { name: "Scottie Scheffler", flag: "🇺🇸" },
+        { name: "Tommy Fleetwood",   flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
+        { name: "Hideki Matsuyama",  flag: "🇯🇵" },
+        { name: "Chris Gotterup",    flag: "🇺🇸" },
+      ]
+    },
+    {
+      name: "Luke",
+      color: "#2a1a4a",
+      players: [
+        { name: "Bryson DeChambeau", flag: "🇺🇸" },
+        { name: "Rory McIlroy",      flag: "🇬🇧" },
+        { name: "Viktor Hovland",    flag: "🇳🇴" },
+        { name: "Brooks Koepka",     flag: "🇺🇸" },
+      ]
+    },
+    {
+      name: "Matt",
+      color: "#1a3a2a",
+      players: [
+        { name: "Cameron Young",     flag: "🇺🇸" },
+        { name: "Ludvig Åberg",      flag: "🇸🇪" },
+        { name: "Robert MacIntyre",  flag: "🏴󠁧󠁢󠁳󠁣󠁴󠁿" },
+        { name: "Gary Woodland",     flag: "🇺🇸" },
+      ]
+    }
+  ];
+
+  let state = TEAMS.map(t => t.players.map(() => ({ score: null, mc: false })));
+
+  function parseScore(raw) {
+    if (!raw || raw.trim() === '' || raw.trim().toLowerCase() === 'e') {
+      return raw && raw.trim().toLowerCase() === 'e' ? 0 : null;
+    }
+    const n = parseInt(raw, 10);
+    return isNaN(n) ? null : n;
+  }
+
+  function scoreClass(score, mc) {
+    if (mc) return 'is-mc';
+    if (score === null) return '';
+    if (score < 0) return 'is-under';
+    if (score > 0) return 'is-over';
+    return '';
+  }
+
+  function teamTotal(teamIdx) {
+    let sum = 0, hasAny = false;
+    for (const s of state[teamIdx]) {
+      if (!s.mc && s.score !== null) { sum += s.score; hasAny = true; }
+    }
+    return hasAny ? sum : null;
+  }
+
+  function totalClass(total) {
+    if (total === null) return 'score-even';
+    if (total < 0) return 'score-under';
+    if (total > 0) return 'score-over';
+    return 'score-even';
+  }
+
+  function formatTotal(total) {
+    if (total === null) return '--';
+    if (total === 0) return 'E';
+    return total > 0 ? `+${total}` : `${total}`;
+  }
+
+  function buildTeams() {
+    const grid = document.getElementById('teamsGrid');
+    grid.innerHTML = '';
+    TEAMS.forEach((team, ti) => {
+      const card = document.createElement('div');
+      card.className = 'team-card';
+      card.innerHTML = `
+        <div class="team-header" style="background:${team.color}22; border-bottom:2px solid ${team.color}88">
+          <span class="team-name">${team.name}</span>
+          <span class="team-total-badge score-total" id="teamTotal-${ti}">--</span>
+        </div>
+        <div class="team-body" id="teamBody-${ti}"></div>
+      `;
+      grid.appendChild(card);
+
+      const body = document.getElementById(`teamBody-${ti}`);
+      team.players.forEach((player, pi) => {
+        const row = document.createElement('div');
+        row.className = 'player-row';
+        row.innerHTML = `
+          <span class="player-name">
+            <span class="player-flag">${player.flag}</span>${player.name}
+          </span>
+          <div class="score-input-wrap">
+            <input
+              class="score-input"
+              id="input-${ti}-${pi}"
+              type="text"
+              inputmode="numeric"
+              placeholder="--"
+              value="${state[ti][pi].mc ? 'MC' : (state[ti][pi].score === null ? '' : (state[ti][pi].score === 0 ? 'E' : (state[ti][pi].score > 0 ? '+' + state[ti][pi].score : state[ti][pi].score)))}"
+              ${state[ti][pi].mc ? 'disabled style="opacity:0.5"' : ''}
+            />
+            <div class="mc-wrap">
+              <input class="mc-check" type="checkbox" id="mc-${ti}-${pi}" ${state[ti][pi].mc ? 'checked' : ''} />
+              <label for="mc-${ti}-${pi}">MC</label>
+            </div>
+          </div>
+        `;
+        body.appendChild(row);
+
+        const input = document.getElementById(`input-${ti}-${pi}`);
+        const mcBox = document.getElementById(`mc-${ti}-${pi}`);
+
+        input.addEventListener('input', () => {
+          const raw = input.value.trim();
+          const parsed = parseScore(raw);
+          state[ti][pi].score = parsed;
+          input.className = 'score-input ' + scoreClass(parsed, false);
+          updateTotals();
+          updateStandings();
+          saveState();
+        });
+
+        input.addEventListener('blur', () => {
+          const s = state[ti][pi];
+          if (!s.mc) {
+            input.value = s.score === null ? '' : (s.score === 0 ? 'E' : (s.score > 0 ? '+' + s.score : s.score));
+          }
+        });
+
+        mcBox.addEventListener('change', () => {
+          state[ti][pi].mc = mcBox.checked;
+          input.disabled = mcBox.checked;
+          input.style.opacity = mcBox.checked ? '0.5' : '1';
+          if (mcBox.checked) { input.value = ''; state[ti][pi].score = null; }
+          input.className = 'score-input';
+          updateTotals();
+          updateStandings();
+          saveState();
+        });
+      });
+    });
+  }
+
+  function updateTotals() {
+    TEAMS.forEach((_, ti) => {
+      const total = teamTotal(ti);
+      const el = document.getElementById(`teamTotal-${ti}`);
+      el.textContent = formatTotal(total);
+      el.className = 'team-total-badge score-total ' + totalClass(total);
+    });
+  }
+
+  function updateStandings() {
+    const tbody = document.getElementById('standingsBody');
+    const rows = TEAMS.map((team, ti) => ({ team, ti, total: teamTotal(ti) }));
+    rows.sort((a, b) => {
+      if (a.total === null && b.total === null) return 0;
+      if (a.total === null) return 1;
+      if (b.total === null) return -1;
+      return a.total - b.total;
+    });
+    tbody.innerHTML = '';
+    rows.forEach((row, rank) => {
+      const pos = rank + 1;
+      const badgeClass = pos === 1 ? 'pos-1' : pos === 2 ? 'pos-2' : pos === 3 ? 'pos-3' : 'pos-other';
+      const playerNames = row.team.players.map(p => p.name.split(' ').slice(-1)[0]).join(', ');
+      tbody.innerHTML += `
+        <tr>
+          <td><span class="pos-badge ${badgeClass}">${pos}</span></td>
+          <td><strong>${row.team.name}</strong></td>
+          <td style="color:#8ab88a;font-size:0.82rem">${playerNames}</td>
+          <td><span class="score-total ${totalClass(row.total)}">${formatTotal(row.total)}</span></td>
+        </tr>
+      `;
+    });
+  }
+
+  function saveState() {
+    const flat = state.map(team =>
+      team.map(p => p.mc ? 'mc' : (p.score === null ? '' : String(p.score))).join(',')
+    ).join('|');
+    history.replaceState(null, '', '#' + btoa(encodeURIComponent(flat)));
+  }
+
+  function loadState() {
+    const hash = location.hash.slice(1);
+    if (!hash) return;
+    try {
+      const flat = decodeURIComponent(atob(hash));
+      flat.split('|').forEach((teamStr, ti) => {
+        if (!state[ti]) return;
+        teamStr.split(',').forEach((val, pi) => {
+          if (!state[ti][pi]) return;
+          if (val === 'mc') state[ti][pi] = { score: null, mc: true };
+          else if (val === '') state[ti][pi] = { score: null, mc: false };
+          else state[ti][pi] = { score: parseInt(val, 10), mc: false };
+        });
+      });
+    } catch (e) {}
+  }
+
+  function copyShareLink() {
+    saveState();
+    navigator.clipboard.writeText(location.href).then(() => {
+      const msg = document.getElementById('copiedMsg');
+      msg.classList.add('show');
+      setTimeout(() => msg.classList.remove('show'), 2000);
+    });
+  }
+
+  loadState();
+  buildTeams();
+  updateTotals();
+  updateStandings();
+</script>
+</body>
+</html>
